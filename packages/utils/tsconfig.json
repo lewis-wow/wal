@@ -1,0 +1,11 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "include": ["src", "__tests__"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "types": ["node", "vitest/globals"]
+  }
+}

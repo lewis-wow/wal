@@ -1,0 +1,28 @@
+{
+  "name": "@repo/utils",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test:unit": "vitest run --config __tests__/vitest.unit.config.ts",
+    "test:unit:coverage": "vitest run --coverage --config __tests__/vitest.unit.config.ts",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/types": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "type-fest": "^5.0.1",
+    "typescript": "^5.5.4",
+    "vitest": "^3.2.4",
+    "zod": "^4.1.12"
+  },
+  "dependencies": {
+    "buffer": "^6.0.3"
+  }
+}
