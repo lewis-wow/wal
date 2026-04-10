@@ -13,6 +13,7 @@
 - **The Risk:** Attacker can calculate p from public information, obtaining a single child private key (d_child) allows to recover the parent private key (d_parent):
   d_parent = (d_child - p) mod n
   This compromises the entire branch of the wallet.
+  The attacker MUST know the Parent Chain Code, which is a XPUB info, not on the blockchain.
 
 ### Hardened Derivation (`m/44'`)
 
