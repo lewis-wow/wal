@@ -1,0 +1,26 @@
+{
+  "name": "@repo/bip32",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test:unit": "vitest run --config __tests__/vitest.unit.config.ts",
+    "lint": "eslint .",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "typescript": "^5.5.4",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0",
+    "@repo/assert": "workspace:*",
+    "@repo/types": "workspace:*"
+  }
+}
