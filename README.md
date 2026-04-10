@@ -1,3 +1,3 @@
 # Wal
 
-PoC Crypto Wallet
+PoC Crypto HD Wallet
