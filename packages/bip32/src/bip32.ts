@@ -16,6 +16,7 @@ import {
 } from '@repo/utils';
 
 import { decodeBase58Check, encodeBase58Check } from './base58check.js';
+import { Bip32Network } from './enums/Bip32Network.js';
 import { getNetworkByVersion } from './helpers/getNetworkByVersion.js';
 import { HARDENED_OFFSET, isHardenedIndex, toHardenedIndex } from './helpers/hardenedIndex.js';
 import { parsePathIndex } from './helpers/parsePathIndex.js';
@@ -34,7 +35,6 @@ const VERSIONS = {
   },
 } as const;
 
-export type Bip32Network = keyof typeof VERSIONS;
 export type Bip32MasterSecret = string | Uint8Array_;
 
 export type Bip32NodeOptions = {
@@ -93,7 +93,7 @@ export class Bip32Node {
     network?: Bip32Network;
     masterSecret?: Bip32MasterSecret;
   }): Bip32Node {
-    const { seed, network = 'mainnet', masterSecret = 'Bitcoin seed' } = opts;
+    const { seed, network = Bip32Network.Mainnet, masterSecret = 'Bitcoin seed' } = opts;
 
     const seedBytes = new Uint8Array(seed);
     assert(seedBytes.length >= 16 && seedBytes.length <= 64, 'Seed must be between 16 and 64 bytes');
@@ -132,7 +132,8 @@ export class Bip32Node {
     const networkWithVersion = getNetworkByVersion(VERSIONS, version);
     assert(networkWithVersion !== undefined, 'Unknown extended key version');
 
-    const [network, versionSet] = networkWithVersion;
+    const [networkKey, versionSet] = networkWithVersion;
+    const network = networkKey as Bip32Network;
 
     // 1 byte: depth: 0x00 for master nodes, 0x01 for level-1 derived keys, ....
     const depth = decoded[4]!;
