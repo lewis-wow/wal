@@ -23,6 +23,7 @@ import { parsePathIndex } from './helpers/parsePathIndex.js';
 import { splitHmac512 } from './helpers/splitHmac512.js';
 
 const SECP256K1_ORDER = secp256k1.Point.CURVE().n;
+const DEFAULT_MASTER_SECRET = 'Bitcoin seed';
 
 const VERSIONS = {
   mainnet: {
@@ -93,7 +94,7 @@ export class Bip32Node {
     network?: Bip32Network;
     masterSecret?: Bip32MasterSecret;
   }): Bip32Node {
-    const { seed, network = Bip32Network.Mainnet, masterSecret = 'Bitcoin seed' } = opts;
+    const { seed, network = Bip32Network.Mainnet, masterSecret = DEFAULT_MASTER_SECRET } = opts;
 
     const seedBytes = new Uint8Array(seed);
     assert(seedBytes.length >= 16 && seedBytes.length <= 64, 'Seed must be between 16 and 64 bytes');
