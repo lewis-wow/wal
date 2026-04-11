@@ -15,7 +15,7 @@ import { getNetworkByVersion } from './helpers/getNetworkByVersion.js';
 import { HARDENED_OFFSET, isHardenedIndex, toHardenedIndex } from './helpers/hardenedIndex.js';
 import { hash160 } from './helpers/hash160.js';
 import { parsePathIndex } from './helpers/parsePathIndex.js';
-import { splitHmac } from './helpers/splitHmac.js';
+import { splitHmac512 } from './helpers/splitHmac512.js';
 import { UINT32_MAX, uint32ToBytes } from './helpers/uint32ToBytes.js';
 
 const SECP256K1_ORDER = secp256k1.Point.CURVE().n;
@@ -44,6 +44,9 @@ export type Bip32NodeOptions = {
   network: Bip32Network;
 };
 
+/**
+ * @see https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
+ */
 export class Bip32Node {
   public readonly privateKey?: Uint8Array_;
   public readonly publicKey: Uint8Array_;
@@ -52,7 +55,6 @@ export class Bip32Node {
   public readonly parentFingerprint: number;
   public readonly childNumber: number;
   public readonly network: Bip32Network;
-  public readonly isPrivate: boolean;
 
   private constructor(options: Bip32NodeOptions) {
     const { privateKey, publicKey, chainCode, depth, parentFingerprint, childNumber, network } = options;
@@ -81,7 +83,6 @@ export class Bip32Node {
     this.parentFingerprint = parentFingerprint;
     this.childNumber = childNumber;
     this.network = network;
-    this.isPrivate = this.privateKey !== undefined;
   }
 
   public static fromSeed(opts: {
@@ -98,7 +99,7 @@ export class Bip32Node {
     assert(hmacKey.length > 0, 'Master secret must not be empty');
 
     const I = hmac(sha512, hmacKey, seedBytes);
-    const [IL, IR] = splitHmac(I);
+    const [IL, IR] = splitHmac512(I);
     const masterKey = bytesToBigInt(IL);
 
     assert(masterKey > 0n && masterKey < SECP256K1_ORDER, 'Master private key is invalid');
@@ -196,9 +197,20 @@ export class Bip32Node {
     });
   }
 
+  /**
+   * Each extended key has 2^31 normal child keys and 2^31 hardened child keys.
+   * Each child key has an index.
+   * Normal child keys use indices 0 through 2^31 - 1.
+   * Hardened child keys use indices 2^31 through 2^32 - 1.
+   */
   public derive(index: number): Bip32Node {
     assert(Number.isInteger(index) && index >= 0 && index <= UINT32_MAX, 'Index must be a uint32');
-    return this.privateKey === undefined ? this.derivePublicChild(index) : this.derivePrivateChild(index);
+
+    if (this.privateKey) {
+      return this.derivePrivateChild(index);
+    }
+
+    return this.derivePublicChild(index);
   }
 
   public deriveHardened(index: number): Bip32Node {
@@ -253,18 +265,36 @@ export class Bip32Node {
   private derivePrivateChild(index: number): Bip32Node {
     assert(this.privateKey !== undefined, 'Cannot derive private child without private key');
 
-    const hardened = isHardenedIndex(index);
-    const data = hardened
-      ? concatBytes(new Uint8Array([0]), this.privateKey, uint32ToBytes(index))
-      : concatBytes(this.publicKey, uint32ToBytes(index));
+    const isHardened = isHardenedIndex(index);
 
-    const I = hmac(sha512, this.chainCode, data);
-    const [IL, IR] = splitHmac(I);
+    const data = isHardened
+      ? // Check whether i >= 2^31 (hardened key)
+        // Hardened child: let I = HMAC-SHA512(Key = c_par, Data = 0x00 || ser256(k_par) || ser32(i))
+        // c_par = chain code parent, k_par = private key parent
+        // 0x00 prefix is to make the len of private key consistent with public key len
+        concatBytes(new Uint8Array([0]), this.privateKey, uint32ToBytes(index))
+      : // Normal child: let I = HMAC-SHA512(Key = c_par, Data = serP(point(k_par)) || ser32(i))
+        // point(k_par) = public key parent derived from private key parent
+        // point(p) = p * G
+
+        // Compressed public key (33 bytes): 1 byte parity prefix (0x02/0x03) + 32 bytes x-coordinate
+        // The curve is symmetric around the x-axis, so x and parity uniquely identify the point
+        concatBytes(this.publicKey, uint32ToBytes(index));
+
+    const I = hmac(
+      sha512,
+      this.chainCode, // key
+      data, // message
+    );
+
+    const [IL, IR] = splitHmac512(I);
     const left = bytesToBigInt(IL);
 
     assert(left < SECP256K1_ORDER, 'Invalid child key (I_L >= n)');
 
     const parent = bytesToBigInt(this.privateKey);
+
+    // k_child = hmac(parent chain code, parent private key) + parent private key
     const child = (left + parent) % SECP256K1_ORDER;
 
     assert(child !== 0n, 'Invalid child key (k_i = 0)');
@@ -287,13 +317,19 @@ export class Bip32Node {
     assert(!isHardenedIndex(index), 'Cannot derive hardened child from public key');
 
     const data = concatBytes(this.publicKey, uint32ToBytes(index));
-    const I = hmac(sha512, this.chainCode, data);
-    const [IL, IR] = splitHmac(I);
+    const I = hmac(
+      sha512,
+      this.chainCode, // key
+      data, // message
+    );
+    const [IL, IR] = splitHmac512(I);
     const left = bytesToBigInt(IL);
 
     assert(left < SECP256K1_ORDER, 'Invalid child key (I_L >= n)');
 
-    const parentPoint = secp256k1.Point.fromHex(this.publicKey);
+    const parentPoint = secp256k1.Point.fromBytes(this.publicKey);
+    // The returned child pulbic key is point(parse256(IL)) + Kpar.
+    // Kpar = public key parent point
     const childPoint = secp256k1.Point.BASE.multiply(left).add(parentPoint);
 
     assert(!childPoint.equals(secp256k1.Point.ZERO), 'Invalid child key (point at infinity)');

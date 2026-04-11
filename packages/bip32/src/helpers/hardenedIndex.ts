@@ -2,6 +2,7 @@ import { assert } from '@repo/assert';
 
 import { UINT32_MAX } from './uint32ToBytes.js';
 
+// 2^31
 export const HARDENED_OFFSET = 0x80000000;
 
 export const isHardenedIndex = (index: number): boolean => {
