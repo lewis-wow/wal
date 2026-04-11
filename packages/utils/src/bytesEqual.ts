@@ -1,6 +1,4 @@
-import { Uint8Array_ } from '@repo/types';
-
-export const bytesEqual = (a: Uint8Array_, b: Uint8Array_): boolean => {
+export const bytesEqual = (a: Uint8Array, b: Uint8Array): boolean => {
   if (a.length !== b.length) {
     return false;
   }

@@ -47,6 +47,9 @@ importers:
       '@repo/types':
         specifier: workspace:*
         version: link:../types
+      '@repo/utils':
+        specifier: workspace:*
+        version: link:../utils
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*
@@ -227,6 +230,12 @@ importers:
 
   packages/utils:
     dependencies:
+      '@noble/curves':
+        specifier: ^1.9.7
+        version: 1.9.7
+      '@noble/hashes':
+        specifier: ^1.8.0
+        version: 1.8.0
       buffer:
         specifier: ^6.0.3
         version: 6.0.3

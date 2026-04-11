@@ -2,7 +2,7 @@
 
 ## N(CKDpriv) == CKDpub
 
-Deriving a child public key from its private key is the same as deriving it from the parent public key. This property holds only for non-hardened child derivations (the resulting child is normal = non-hardened).
+Deriving a child public key from its private key is equivalent to deriving it directly from the parent public key. This property holds only for non-hardened child derivations. For hardened derivations, the parent private key is strictly required to compute I via HMAC-SHA512, which prevents the derivation of child keys from a public key alone.
 
 Normal public keys can be derived from a parent xpub without knowing the parent xpriv. Normal private keys can then be generated from the parent xpriv, corresponding to the K_i values generated in the previous step.
 

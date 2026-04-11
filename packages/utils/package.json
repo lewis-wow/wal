@@ -23,6 +23,8 @@
     "zod": "^4.1.12"
   },
   "dependencies": {
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0",
     "buffer": "^6.0.3"
   }
 }

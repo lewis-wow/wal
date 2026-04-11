@@ -1,6 +1,5 @@
 import { assert } from '@repo/assert';
-
-import { UINT32_MAX } from './uint32ToBytes.js';
+import { UINT32_MAX } from '@repo/utils';
 
 // 2^31
 export const HARDENED_OFFSET = 0x80000000;

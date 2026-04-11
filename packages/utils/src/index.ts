@@ -14,3 +14,8 @@ export * from './bytesToBase64.js';
 export * from './bytesToBase64Url.js';
 export * from './bytesToHex.js';
 export * from './bytesEqual.js';
+export * from './bytesToUint32.js';
+export * from './uint32ToBytes.js';
+export * from './ensureValidPrivateKey.js';
+export * from './ensureValidPublicKey.js';
+export * from './hash160.js';

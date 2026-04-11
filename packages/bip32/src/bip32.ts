@@ -3,20 +3,23 @@ import { hmac } from '@noble/hashes/hmac';
 import { sha512 } from '@noble/hashes/sha2';
 import { assert } from '@repo/assert';
 import type { Uint8Array_ } from '@repo/types';
+import {
+  UINT32_MAX,
+  bigIntToBytes,
+  bytesConcat,
+  bytesToBigInt,
+  bytesToUint32,
+  ensureValidPrivateKey,
+  ensureValidPublicKey,
+  hash160,
+  uint32ToBytes,
+} from '@repo/utils';
 
 import { decodeBase58Check, encodeBase58Check } from './base58check.js';
-import { bigIntToBytes } from './helpers/bigIntToBytes.js';
-import { bytesToBigInt } from './helpers/bytesToBigInt.js';
-import { bytesToUint32 } from './helpers/bytesToUint32.js';
-import { concatBytes } from './helpers/concatBytes.js';
-import { ensureValidPrivateKey } from './helpers/ensureValidPrivateKey.js';
-import { ensureValidPublicKey } from './helpers/ensureValidPublicKey.js';
 import { getNetworkByVersion } from './helpers/getNetworkByVersion.js';
 import { HARDENED_OFFSET, isHardenedIndex, toHardenedIndex } from './helpers/hardenedIndex.js';
-import { hash160 } from './helpers/hash160.js';
 import { parsePathIndex } from './helpers/parsePathIndex.js';
 import { splitHmac512 } from './helpers/splitHmac512.js';
-import { UINT32_MAX, uint32ToBytes } from './helpers/uint32ToBytes.js';
 
 const SECP256K1_ORDER = secp256k1.Point.CURVE().n;
 
@@ -241,7 +244,7 @@ export class Bip32Node {
   public toXprv(): string {
     assert(this.privateKey !== undefined, 'Cannot serialize a public-only node as xprv');
     const version = VERSIONS[this.network].private;
-    const keyData = concatBytes(new Uint8Array([0]), this.privateKey);
+    const keyData = bytesConcat(new Uint8Array([0]), this.privateKey);
     return this.serialize(version, keyData);
   }
 
@@ -272,14 +275,14 @@ export class Bip32Node {
         // Hardened child: let I = HMAC-SHA512(Key = c_par, Data = 0x00 || ser256(k_par) || ser32(i))
         // c_par = chain code parent, k_par = private key parent
         // 0x00 prefix is to make the len of private key consistent with public key len
-        concatBytes(new Uint8Array([0]), this.privateKey, uint32ToBytes(index))
+        bytesConcat(new Uint8Array([0]), this.privateKey, uint32ToBytes(index))
       : // Normal child: let I = HMAC-SHA512(Key = c_par, Data = serP(point(k_par)) || ser32(i))
         // point(k_par) = public key parent derived from private key parent
         // point(p) = p * G
 
         // Compressed public key (33 bytes): 1 byte parity prefix (0x02/0x03) + 32 bytes x-coordinate
         // The curve is symmetric around the x-axis, so x and parity uniquely identify the point
-        concatBytes(this.publicKey, uint32ToBytes(index));
+        bytesConcat(this.publicKey, uint32ToBytes(index));
 
     const I = hmac(
       sha512,
@@ -316,7 +319,7 @@ export class Bip32Node {
   private derivePublicChild(index: number): Bip32Node {
     assert(!isHardenedIndex(index), 'Cannot derive hardened child from public key');
 
-    const data = concatBytes(this.publicKey, uint32ToBytes(index));
+    const data = bytesConcat(this.publicKey, uint32ToBytes(index));
     const I = hmac(
       sha512,
       this.chainCode, // key

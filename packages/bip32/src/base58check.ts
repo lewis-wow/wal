@@ -1,8 +1,6 @@
 import { assert } from '@repo/assert';
+import { bigIntToBytes, bytesEqual, bytesToBigInt } from '@repo/utils';
 
-import { bigIntToBytes } from './helpers/bigIntToBytes.js';
-import { bytesEqual } from './helpers/bytesEqual.js';
-import { bytesToBigInt } from './helpers/bytesToBigInt.js';
 import { doubleSha256Checksum } from './helpers/doubleSha256Checksum.js';
 
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';

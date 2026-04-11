@@ -1,6 +1,4 @@
-import type { Uint8Array_ } from '@repo/types';
-
-export const bytesConcat = (...chunks: [Uint8Array_, Uint8Array_, ...Uint8Array_[]]): Uint8Array_ => {
+export const bytesConcat = (...chunks: [Uint8Array, Uint8Array, ...Uint8Array[]]): Uint8Array => {
   const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
   const result = new Uint8Array(totalLength);
 
