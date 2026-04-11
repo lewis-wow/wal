@@ -50,6 +50,20 @@ export type Bip32NodeOptions = {
 
 /**
  * @see https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
+ *
+ * m
+ * const masterNode = Bip32Node.fromSeed({ seed });
+ *
+ * m / 0
+ * const childNormal = masterNode.derive(0);
+ *
+ * m / 0' = 0 + 2^31
+ * const childHardened = masterNode.derive(toHardenedIndex(0));
+ *
+ * m / 0' = 0 + 2^31
+ * const childHardenedFromPath = masterNode.derivePath("m/0'");
+ *
+ * assert(childHardened === childHardenedFromPath)
  */
 export class Bip32Node {
   public readonly privateKey?: Uint8Array_;

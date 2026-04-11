@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import type { Uint8Array_ } from '@repo/types';
 
 import { Bip32Node, fromHardenedIndex, isHardenedIndex, toHardenedIndex } from '../src/index.js';
+import { hexToBytes } from '@repo/utils';
 
 type VectorPath = {
   path: string;
@@ -14,10 +14,9 @@ type DerivationVector = {
   paths: VectorPath[];
 };
 
-const hexToBytes = (hex: string): Uint8Array_ => {
-  return new Uint8Array(Buffer.from(hex, 'hex')) as Uint8Array_;
-};
-
+/**
+ * @see https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
+ */
 const VECTORS: DerivationVector[] = [
   {
     seedHex: '000102030405060708090a0b0c0d0e0f',
