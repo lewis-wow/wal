@@ -106,7 +106,7 @@ export const generateSlip39Shares = (options: Slip39GenerateOptions): Slip39Gene
 /**
  * @see https://github.com/satoshilabs/slips/blob/master/slip-0039.md#combining-the-shares
  */
-export const combineSlip39Shares = (mnemonics: readonly string[], passphrase = ''): Uint8Array_ => {
+export const combineSlip39Shares = (mnemonics: string[], passphrase = ''): Uint8Array_ => {
   assert(mnemonics.length > 0, 'mnemonics must not be empty');
   assertPrintableAscii(passphrase, 'passphrase');
 

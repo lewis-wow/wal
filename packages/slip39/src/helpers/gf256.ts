@@ -6,7 +6,7 @@ export type Slip39RawShare = {
   value: Uint8Array;
 };
 
-export const interpolate = (shares: readonly Slip39RawShare[], x: number): Uint8Array => {
+export const interpolate = (shares: Slip39RawShare[], x: number): Uint8Array => {
   assert(shares.length > 0, 'At least one share is required');
   assert(Number.isInteger(x) && x >= 0 && x <= 255, 'Interpolation index must be in range 0..255');
 

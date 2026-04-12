@@ -34,9 +34,6 @@ export const assertShareFields = (share: Slip39Share): void => {
   assert(valueBits % 16 === 0, 'Share value bit length must be a multiple of 16');
 };
 
-export const toRawShares = (
-  shares: readonly Slip39Share[],
-  xSelector: (share: Slip39Share) => number,
-): Slip39RawShare[] => {
+export const toRawShares = (shares: Slip39Share[], xSelector: (share: Slip39Share) => number): Slip39RawShare[] => {
   return shares.map((share) => ({ x: xSelector(share), value: share.value }));
 };

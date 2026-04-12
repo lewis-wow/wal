@@ -56,7 +56,7 @@ export const splitSecret = (threshold: number, shareCount: number, sharedSecret:
   return shares;
 };
 
-export const recoverSecret = (threshold: number, shares: readonly Slip39RawShare[]): Uint8Array => {
+export const recoverSecret = (threshold: number, shares: Slip39RawShare[]): Uint8Array => {
   assert(Number.isInteger(threshold) && threshold > 0, 'threshold must be a positive integer');
   assert(shares.length >= threshold, 'Not enough shares provided for the given threshold');
 

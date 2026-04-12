@@ -42,7 +42,7 @@ const intToIndices = (value: bigint | number, length: number, radixBits: number)
   return output;
 };
 
-const indicesToInt = (indices: readonly number[]): bigint => {
+const indicesToInt = (indices: number[]): bigint => {
   let value = 0n;
 
   for (const index of indices) {
