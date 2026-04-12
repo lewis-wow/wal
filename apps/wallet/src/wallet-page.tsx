@@ -144,7 +144,8 @@ const sendFormSchema = z.object({
     }, 'Enter a valid amount greater than 0.'),
 });
 
-type SendFormValues = z.infer<typeof sendFormSchema>;
+type SendFormInputValues = z.input<typeof sendFormSchema>;
+type SendFormValues = z.output<typeof sendFormSchema>;
 
 const slip39FormSchema = z.object({
   slip39Passphrase: z.string().regex(PRINTABLE_ASCII_REGEX, 'Use printable ASCII characters only.'),
@@ -283,7 +284,6 @@ export const WalletPage = () => {
   const [generatedMnemonic, setGeneratedMnemonic] = useState('');
   const [addresses, setAddresses] = useState<WalletAddress[]>([]);
   const [signature, setSignature] = useState('');
-  const [shares, setShares] = useState<string[]>([]);
   const [latestTransaction, setLatestTransaction] = useState<LatestTransaction | null>(null);
   const [activeAction, setActiveAction] = useState<QuickAction>('send');
   const [cachedPrimaryAddress, setCachedPrimaryAddress] = useState<Address | undefined>(() =>
@@ -314,7 +314,7 @@ export const WalletPage = () => {
     },
   });
 
-  const sendForm = useForm<SendFormValues>({
+  const sendForm = useForm<SendFormInputValues, unknown, SendFormValues>({
     resolver: zodResolver(sendFormSchema),
     defaultValues: {
       fromAddressIndex: 0,
@@ -381,7 +381,12 @@ export const WalletPage = () => {
     const hasAddress = addresses.some((address) => address.addressIndex === currentIndex);
 
     if (!hasAddress) {
-      sendForm.setValue('fromAddressIndex', addresses[0].addressIndex, { shouldDirty: true });
+      const firstAddress = addresses[0];
+      if (!firstAddress) {
+        return;
+      }
+
+      sendForm.setValue('fromAddressIndex', firstAddress.addressIndex, { shouldDirty: true });
     }
   }, [addresses, sendForm]);
 
@@ -444,7 +449,6 @@ export const WalletPage = () => {
       setAddresses(discoveredAddresses);
       rememberPrimaryAddress(discoveredAddresses);
       setSignature('');
-      setShares(nextShares);
       setLatestTransaction(null);
       slip39Form.setValue('slip39Passphrase', values.slip39Passphrase, { shouldDirty: false, shouldTouch: false });
       slip39Form.setValue('sharesInput', nextShares.slice(0, 2).join('\n'), { shouldDirty: true, shouldTouch: true });
@@ -533,7 +537,6 @@ export const WalletPage = () => {
       const seed = await decryptSeedFromVault();
       const nextShares = createSlip39Backup(seed, values.slip39Passphrase);
 
-      setShares(nextShares);
       slip39Form.setValue('sharesInput', nextShares.slice(0, 2).join('\n'), { shouldDirty: true, shouldTouch: true });
       setStatus('SLIP39 shares generated from unlocked seed.');
     });
@@ -579,7 +582,6 @@ export const WalletPage = () => {
       setGeneratedMnemonic('');
       setAddresses([]);
       setSignature('');
-      setShares([]);
       setLatestTransaction(null);
       setCachedPrimaryAddress(undefined);
       clearCachedPrimaryAddress();
