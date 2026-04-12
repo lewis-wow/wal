@@ -1,5 +1,4 @@
 import { assert } from '@repo/assert';
-import { getRandomBytes } from '@repo/crypto';
 
 import { SLIP39_MAX_SHARE_COUNT, SLIP39_MIN_STRENGTH_BITS } from '../consts.js';
 import type { Slip39Share } from '../types.js';
