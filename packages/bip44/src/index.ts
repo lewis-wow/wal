@@ -1,4 +1,5 @@
 export {
+  composeBip44UtxoTransaction,
   deriveBip44AccountNode,
   deriveBip44AddressNode,
   deriveBip44AddressNodeFromMaster,
@@ -18,6 +19,12 @@ export { Bip44CoinType } from './enums/Bip44CoinType.js';
 export type {
   Bip44AccountDiscoveryOptions,
   Bip44AccountPathOptions,
+  Bip44UtxoChangeOutput,
+  Bip44UtxoComposeOptions,
+  Bip44UtxoComposeResult,
+  Bip44UtxoInput,
+  Bip44UtxoPaymentOutput,
+  Bip44UtxoRecipientOutput,
   Bip44AddressUsageChecker,
   Bip44AddressUsageContext,
   Bip44ChainPathOptions,
