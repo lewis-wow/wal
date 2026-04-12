@@ -1,5 +1,5 @@
 {
-  "name": "@repo/shamir-secret-sharing",
+  "name": "@repo/gf256",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,11 +16,5 @@
     "@repo/typescript-config": "workspace:*",
     "typescript": "^5.5.4",
     "vitest": "^3.2.4"
-  },
-  "dependencies": {
-    "@noble/curves": "^1.9.7",
-    "@repo/crypto": "workspace:*",
-    "@repo/types": "workspace:*",
-    "@repo/utils": "workspace:*"
   }
 }
