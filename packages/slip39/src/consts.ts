@@ -1,0 +1,38 @@
+const bitsToWords = (bitCount: number): number => {
+  return Math.ceil(bitCount / 10);
+};
+
+export const bitsToBytes = (bitCount: number): number => {
+  return Math.ceil(bitCount / 8);
+};
+
+export const SLIP39_RADIX_BITS = 10;
+export const SLIP39_RADIX = 2 ** SLIP39_RADIX_BITS;
+
+export const SLIP39_ID_LENGTH_BITS = 15;
+export const SLIP39_EXTENDABLE_FLAG_LENGTH_BITS = 1;
+export const SLIP39_ITERATION_EXP_LENGTH_BITS = 4;
+
+export const SLIP39_ID_EXP_LENGTH_WORDS = bitsToWords(
+  SLIP39_ID_LENGTH_BITS + SLIP39_EXTENDABLE_FLAG_LENGTH_BITS + SLIP39_ITERATION_EXP_LENGTH_BITS,
+);
+
+export const SLIP39_MAX_SHARE_COUNT = 16;
+
+export const SLIP39_CHECKSUM_LENGTH_WORDS = 3;
+export const SLIP39_DIGEST_LENGTH_BYTES = 4;
+
+export const SLIP39_CUSTOMIZATION_STRING_ORIG = 'shamir';
+export const SLIP39_CUSTOMIZATION_STRING_EXTENDABLE = 'shamir_extendable';
+
+export const SLIP39_GROUP_PREFIX_LENGTH_WORDS = SLIP39_ID_EXP_LENGTH_WORDS + 1;
+export const SLIP39_METADATA_LENGTH_WORDS = SLIP39_ID_EXP_LENGTH_WORDS + 2 + SLIP39_CHECKSUM_LENGTH_WORDS;
+
+export const SLIP39_MIN_STRENGTH_BITS = 128;
+export const SLIP39_MIN_MNEMONIC_LENGTH_WORDS = SLIP39_METADATA_LENGTH_WORDS + bitsToWords(SLIP39_MIN_STRENGTH_BITS);
+
+export const SLIP39_BASE_ITERATION_COUNT = 10000;
+export const SLIP39_ROUND_COUNT = 4;
+
+export const SLIP39_SECRET_INDEX = 255;
+export const SLIP39_DIGEST_INDEX = 254;
