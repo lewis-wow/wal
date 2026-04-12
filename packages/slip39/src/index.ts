@@ -1,10 +1,5 @@
-export {
-  combineSlip39Shares,
-  decodeSlip39Mnemonic,
-  encodeSlip39Mnemonic,
-  generateSlip39Shares,
-  validateSlip39Mnemonic,
-} from './slip39.js';
+export { combineSlip39Shares, generateSlip39Shares } from './slip39.js';
+export { decodeSlip39Mnemonic, encodeSlip39Mnemonic, validateSlip39Mnemonic } from './helpers/mnemonicCodec.js';
 export {
   SLIP39_CHECKSUM_LENGTH_WORDS,
   SLIP39_GROUP_PREFIX_LENGTH_WORDS,

@@ -2,10 +2,6 @@ const bitsToWords = (bitCount: number): number => {
   return Math.ceil(bitCount / 10);
 };
 
-export const bitsToBytes = (bitCount: number): number => {
-  return Math.ceil(bitCount / 8);
-};
-
 export const SLIP39_RADIX_BITS = 10;
 export const SLIP39_RADIX = 2 ** SLIP39_RADIX_BITS;
 

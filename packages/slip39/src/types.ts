@@ -8,7 +8,7 @@ export type Slip39GroupConfig = {
 export type Slip39GenerateOptions = {
   masterSecret: Uint8Array_;
   groupThreshold: number;
-  groups: readonly Slip39GroupConfig[];
+  groups: Slip39GroupConfig[];
   passphrase?: string;
   extendable?: boolean;
   iterationExponent?: number;
