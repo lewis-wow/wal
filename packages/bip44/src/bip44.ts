@@ -11,6 +11,51 @@ export type Bip44PathOptions = {
   addressIndex: number;
 };
 
+export type Bip44UtxoInput = {
+  txid: string;
+  vout: number;
+  value: bigint;
+  addressIndex: number;
+};
+
+export type Bip44UtxoRecipientOutput = {
+  address: string;
+  value: bigint;
+};
+
+export type Bip44UtxoChangeOutput = {
+  kind: 'change';
+  value: bigint;
+  chain: typeof Bip44Chain.Internal;
+  addressIndex: number;
+  path: string;
+};
+
+export type Bip44UtxoPaymentOutput = {
+  kind: 'recipient';
+  value: bigint;
+  address: string;
+};
+
+export type Bip44UtxoComposeOptions = {
+  purpose?: number;
+  coinType: number;
+  account: number;
+  inputs: readonly Bip44UtxoInput[];
+  recipients: readonly Bip44UtxoRecipientOutput[];
+  fee: bigint;
+  usedInternalAddressIndices?: readonly number[];
+};
+
+export type Bip44UtxoComposeResult = {
+  selectedInputs: Bip44UtxoInput[];
+  outputs: Array<Bip44UtxoPaymentOutput | Bip44UtxoChangeOutput>;
+  changeOutput?: Bip44UtxoChangeOutput;
+  totalInput: bigint;
+  totalOutput: bigint;
+  fee: bigint;
+};
+
 export type Bip44AccountPathOptions = {
   purpose?: number;
   coinType: number;
@@ -84,6 +129,27 @@ const getPurpose = (purpose?: number): number => {
   return value;
 };
 
+const assertAmount = (value: bigint, fieldName: string): void => {
+  assert(value >= 0n, `${fieldName} must be >= 0`);
+};
+
+const nextChangeAddressIndex = (usedInternalAddressIndices: readonly number[] = []): number => {
+  if (usedInternalAddressIndices.length === 0) {
+    return 0;
+  }
+
+  let maxUsed = -1;
+
+  for (const index of usedInternalAddressIndices) {
+    assertUint31(index, 'Used internal address index');
+    if (index > maxUsed) {
+      maxUsed = index;
+    }
+  }
+
+  return maxUsed + 1;
+};
+
 export const getBip44AccountPath = (opts: Bip44AccountPathOptions): string => {
   const purpose = getPurpose(opts.purpose);
 
@@ -119,6 +185,81 @@ export const deriveBip44AddressNode = (chainNode: Bip32Node, addressIndex: numbe
 
 export const deriveBip44AddressNodeFromMaster = (masterNode: Bip32Node, opts: Bip44PathOptions): Bip32Node => {
   return masterNode.derivePath(getBip44AddressPath(opts));
+};
+
+export const composeBip44UtxoTransaction = (opts: Bip44UtxoComposeOptions): Bip44UtxoComposeResult => {
+  assert(opts.inputs.length > 0, 'At least one input is required');
+  assert(opts.recipients.length > 0, 'At least one recipient output is required');
+
+  assertUint31(opts.coinType, 'Coin type');
+  assertUint31(opts.account, 'Account');
+  assertAmount(opts.fee, 'Fee');
+
+  const recipients: Bip44UtxoPaymentOutput[] = opts.recipients.map((recipient) => {
+    assert(recipient.address.length > 0, 'Recipient address must not be empty');
+    assertAmount(recipient.value, 'Recipient value');
+
+    return {
+      kind: 'recipient',
+      address: recipient.address,
+      value: recipient.value,
+    };
+  });
+
+  const requiredAmount = recipients.reduce((sum, output) => sum + output.value, 0n) + opts.fee;
+
+  const selectedInputs: Bip44UtxoInput[] = [];
+  let totalInput = 0n;
+
+  for (const input of opts.inputs) {
+    assert(input.txid.length > 0, 'Input txid must not be empty');
+    assert(Number.isInteger(input.vout) && input.vout >= 0, 'Input vout must be a non-negative integer');
+    assertAmount(input.value, 'Input value');
+    assertUint31(input.addressIndex, 'Input address index');
+
+    selectedInputs.push(input);
+    totalInput += input.value;
+
+    if (totalInput >= requiredAmount) {
+      break;
+    }
+  }
+
+  assert(totalInput >= requiredAmount, 'Insufficient funds for requested outputs and fee');
+
+  const changeValue = totalInput - requiredAmount;
+  const outputs: Array<Bip44UtxoPaymentOutput | Bip44UtxoChangeOutput> = [...recipients];
+
+  let changeOutput: Bip44UtxoChangeOutput | undefined;
+
+  if (changeValue > 0n) {
+    const changeAddressIndex = nextChangeAddressIndex(opts.usedInternalAddressIndices);
+
+    changeOutput = {
+      kind: 'change',
+      value: changeValue,
+      chain: Bip44Chain.Internal,
+      addressIndex: changeAddressIndex,
+      path: getBip44AddressPath({
+        purpose: opts.purpose,
+        coinType: opts.coinType,
+        account: opts.account,
+        chain: Bip44Chain.Internal,
+        addressIndex: changeAddressIndex,
+      }),
+    };
+
+    outputs.push(changeOutput);
+  }
+
+  return {
+    selectedInputs,
+    outputs,
+    changeOutput,
+    totalInput,
+    totalOutput: requiredAmount,
+    fee: opts.fee,
+  };
 };
 
 export const scanBip44ExternalChain = async (
