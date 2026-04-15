@@ -1,7 +1,9 @@
-export function bigIntToBytes(value: bigint, output: Uint8Array): Uint8Array;
-export function bigIntToBytes(value: bigint, length?: number): Uint8Array;
+import { Uint8Array_ } from '@repo/types';
 
-export function bigIntToBytes(value: bigint, outputOrLength?: Uint8Array | number): Uint8Array {
+export function bigIntToBytes(value: bigint, output: Uint8Array_): Uint8Array_;
+export function bigIntToBytes(value: bigint, length?: number): Uint8Array_;
+
+export function bigIntToBytes(value: bigint, outputOrLength?: Uint8Array | number): Uint8Array_ {
   if (value < 0n) {
     throw new Error('Cannot encode negative bigint to bytes');
   }
@@ -22,7 +24,7 @@ export function bigIntToBytes(value: bigint, outputOrLength?: Uint8Array | numbe
       throw new Error('Value does not fit output buffer length');
     }
 
-    return outputOrLength;
+    return outputOrLength as Uint8Array_;
   }
 
   if (outputOrLength === undefined) {
