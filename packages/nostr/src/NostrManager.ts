@@ -1,5 +1,6 @@
 import { finalizeEvent, SimplePool } from 'nostr-tools';
 import type { Event as NostrEvent, EventTemplate } from 'nostr-tools';
+import type { Filter } from 'nostr-tools';
 import { decrypt, encrypt, getConversationKey } from 'nostr-tools/nip44';
 import type { Uint8Array_ } from '@repo/types';
 import { deriveFragmentedIdentity } from './deriveFragmentedIdentity.js';
@@ -18,6 +19,13 @@ export type NostrMessage = {
   recipientPubKey: string;
   timestamp: number;
   isOwn: boolean;
+};
+
+export type NostrDiscoveryProgress = {
+  discovered: NostrIdentity[];
+  scannedCount: number;
+  emptyCount: number;
+  done: boolean;
 };
 
 export type NostrManagerConfig = {
@@ -56,43 +64,124 @@ export class NostrManager {
     return this.config.getRelays();
   }
 
-  async discoverIdentities(opts: { seed: Uint8Array_; gapLimit?: number }) {
-    const { seed, gapLimit = 20 } = opts;
+  async discoverIdentities(opts: {
+    seed: Uint8Array_;
+    gapLimit?: number;
+    relayQueryMaxWaitMs?: number;
+    discoveryBatchSize?: number;
+    onProgress?: (progress: NostrDiscoveryProgress) => void;
+  }) {
+    const { seed, gapLimit = 20, relayQueryMaxWaitMs = 1200, discoveryBatchSize = gapLimit, onProgress } = opts;
 
     let emptyCount = 0;
     let index = 0;
     const discovered: NostrIdentity[] = [];
+    const batchSize = Math.max(1, discoveryBatchSize);
 
     while (emptyCount < gapLimit) {
-      const { publicKey } = deriveFragmentedIdentity(seed, index);
+      const batchCandidates = Array.from({ length: batchSize }, (_, offset) => {
+        const candidateIndex = index + offset;
+        const { publicKey } = deriveFragmentedIdentity(seed, candidateIndex);
+        return {
+          index: candidateIndex,
+          publicKey,
+        };
+      });
 
-      const events = await this.pool
-        .querySync(this.getRelays(), {
+      const candidatePubKeySet = new Set(batchCandidates.map((candidate) => candidate.publicKey.toLowerCase()));
+      const filters: Filter[] = batchCandidates.flatMap((candidate) => [
+        {
           kinds: [4],
-          authors: [publicKey],
+          authors: [candidate.publicKey],
           limit: 1,
-        })
-        .catch(() => []);
-
-      const eventsToMsgs = await this.pool
-        .querySync(this.getRelays(), {
+        },
+        {
           kinds: [4],
-          '#p': [publicKey],
+          '#p': [candidate.publicKey],
           limit: 1,
-        })
-        .catch(() => []);
+        },
+      ]);
 
-      if (events.length === 0 && eventsToMsgs.length === 0) {
-        emptyCount += 1;
-      } else {
-        emptyCount = 0;
+      const events = await this.querySyncWithFilters({
+        filters,
+        maxWaitMs: relayQueryMaxWaitMs,
+      });
+      const activePubKeys = new Set<string>();
+
+      for (const event of events) {
+        const senderPubKey = event.pubkey.toLowerCase();
+        if (candidatePubKeySet.has(senderPubKey)) {
+          activePubKeys.add(senderPubKey);
+        }
+
+        const recipientTag = event.tags.find((tag) => tag[0] === 'p');
+        const recipientPubKey = recipientTag?.[1]?.toLowerCase();
+        if (recipientPubKey && candidatePubKeySet.has(recipientPubKey)) {
+          activePubKeys.add(recipientPubKey);
+        }
       }
 
-      discovered.push({ index, publicKey });
-      index += 1;
+      for (const candidate of batchCandidates) {
+        discovered.push({ index: candidate.index, publicKey: candidate.publicKey });
+
+        if (activePubKeys.has(candidate.publicKey.toLowerCase())) {
+          emptyCount = 0;
+        } else {
+          emptyCount += 1;
+        }
+
+        index = candidate.index + 1;
+
+        if (emptyCount >= gapLimit) {
+          break;
+        }
+      }
+
+      onProgress?.({
+        discovered: [...discovered],
+        scannedCount: discovered.length,
+        emptyCount,
+        done: false,
+      });
     }
 
+    onProgress?.({
+      discovered: [...discovered],
+      scannedCount: discovered.length,
+      emptyCount,
+      done: true,
+    });
+
     return discovered;
+  }
+
+  private querySyncWithFilters(opts: { filters: Filter[]; maxWaitMs: number }) {
+    const { filters, maxWaitMs } = opts;
+
+    if (filters.length === 0) {
+      return Promise.resolve([] as NostrEvent[]);
+    }
+
+    const relayRequests = this.getRelays().flatMap((relayUrl) =>
+      filters.map((filter) => ({
+        url: relayUrl,
+        filter,
+      })),
+    );
+
+    return new Promise<NostrEvent[]>((resolve) => {
+      const eventsById = new Map<string, NostrEvent>();
+
+      this.pool.subscribeMap(relayRequests, {
+        maxWait: maxWaitMs,
+        onevent: (event) => {
+          eventsById.set(event.id, event);
+        },
+        onclose: () => {
+          resolve([...eventsById.values()]);
+        },
+      });
+    });
   }
 
   subscribeToIdentities(opts: { identities: NostrIdentity[] }) {

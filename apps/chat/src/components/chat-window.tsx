@@ -1,10 +1,10 @@
 import React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNostrManagerActions } from '@repo/nostr/react';
-import { useAppSelector } from '../lib/chat-store';
+import { getConversationThreadKey, useAppSelector } from '../lib/chat-store';
 import { Button } from '@repo/ui/components/ui/button';
 import { useForm } from 'react-hook-form';
-import { Send, Lock } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -17,6 +17,7 @@ type ChatMessageFormValues = z.infer<typeof chatMessageFormSchema>;
 export function ChatWindow() {
   const { sendNip44Message } = useNostrManagerActions();
   const identities = useAppSelector((state) => state.chat.identities);
+  const activeIdentityIndex = useAppSelector((state) => state.chat.activeIdentityIndex);
   const messages = useAppSelector((state) => state.chat.messages);
 
   const {
@@ -33,23 +34,38 @@ export function ChatWindow() {
     },
   });
 
-  const activeIdentity = identities.find((i) => Boolean(i.activeChatPubKey));
+  const activeIdentity = identities.find((identity) => identity.index === activeIdentityIndex);
 
-  if (!activeIdentity || !activeIdentity.activeChatPubKey) {
+  if (!activeIdentity) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-background rounded-lg border shadow-sm">
-        <Lock className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
-        <h3 className="text-xl font-semibold mb-2 text-foreground">Blinded Chat</h3>
-        <p className="text-muted-foreground max-w-md">
-          Select an identity from the sidebar and input a partner&apos;s public key to start an end-to-end encrypted
-          conversation.
-        </p>
+        <h3 className="text-xl font-semibold mb-2 text-foreground">No Chat Selected</h3>
+        <p className="text-muted-foreground max-w-md">Tap + in the sidebar to add a chat and start messaging.</p>
       </div>
     );
   }
 
   const partnerKey = activeIdentity.activeChatPubKey;
-  const conversation = messages[partnerKey] ?? [];
+  const chatTitle = activeIdentity.chatLabel ?? `Chat #${activeIdentity.index}`;
+
+  if (!partnerKey) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-background rounded-lg border shadow-sm">
+        <h3 className="text-xl font-semibold mb-2 text-foreground">Chat Is Missing Contact Address</h3>
+        <p className="text-muted-foreground max-w-md">Please recreate this chat from the sidebar.</p>
+      </div>
+    );
+  }
+
+  const conversationThreadKey = getConversationThreadKey({
+    localPubKey: activeIdentity.publicKey,
+    partnerPubKey: partnerKey,
+  });
+  const legacyConversation = (messages[partnerKey] ?? []).filter((msg) => {
+    const localPubKey = msg.isOwn ? msg.senderPubKey : msg.recipientPubKey;
+    return localPubKey.toLowerCase() === activeIdentity.publicKey.toLowerCase();
+  });
+  const conversation = messages[conversationThreadKey] ?? legacyConversation;
 
   const handleSend = async (values: ChatMessageFormValues) => {
     try {
@@ -73,8 +89,8 @@ export function ChatWindow() {
     <div className="flex-1 flex flex-col border rounded-lg bg-background overflow-hidden relative shadow-sm">
       <div className="p-4 border-b bg-secondary/30 backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-foreground">Encrypted Session</h3>
-          <p className="text-xs text-muted-foreground truncate max-w-62.5">Partner: {partnerKey}</p>
+          <h3 className="font-semibold text-foreground">{chatTitle}</h3>
+          <p className="text-xs text-muted-foreground truncate max-w-[250px]">Partner: {partnerKey}</p>
         </div>
       </div>
 

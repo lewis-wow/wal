@@ -3,9 +3,17 @@ import { useNostrManagerActions } from '@repo/nostr/react';
 import { useAppDispatch, useAppSelector } from '../lib/chat-store';
 import { setIdentities } from '../lib/chat-store';
 import { Button } from '@repo/ui/components/ui/button';
-import { Shield, Eye, EyeOff, Search, Copy } from 'lucide-react';
+import { Shield, Eye, EyeOff, Search, Copy, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { bytesToHex } from '@repo/utils';
+
+const DISCOVERY_GAP_LIMIT = 20;
+const DISCOVERY_BATCH_SIZE = 20;
+
+type DiscoveryUiProgress = {
+  scannedCount: number;
+  emptyCount: number;
+};
 
 export function SecurityDashboard() {
   const dispatch = useAppDispatch();
@@ -16,27 +24,52 @@ export function SecurityDashboard() {
   const [showSeed, setShowSeed] = React.useState(false);
   const [isSearching, setIsSearching] = React.useState(false);
   const [searchMsg, setSearchMsg] = React.useState('');
+  const [discoveryProgress, setDiscoveryProgress] = React.useState<DiscoveryUiProgress | null>(null);
 
-  const handleDiscovery = async () => {
-    try {
-      if (!seed) return;
-      setIsSearching(true);
-      setSearchMsg('Scanning relays for blinded identities...');
+  const emptyStreakPercent = discoveryProgress
+    ? Math.min(100, Math.round((discoveryProgress.emptyCount / DISCOVERY_GAP_LIMIT) * 100))
+    : 0;
 
-      const discovered = await discoverIdentities({ seed, gapLimit: 20 });
+  const handleDiscovery = () => {
+    if (!seed || isSearching) return;
 
-      if (discovered.length > 0) {
-        dispatch(setIdentities(discovered));
-        setSearchMsg(`Found and recovered ${discovered.length} identities.`);
-      } else {
-        setSearchMsg('No active identities found.');
-      }
-    } catch (err) {
-      console.error(err);
-      setSearchMsg('Recovery failed. See console.');
-    } finally {
-      setIsSearching(false);
-    }
+    setIsSearching(true);
+    setDiscoveryProgress({ scannedCount: 0, emptyCount: 0 });
+    setSearchMsg('Scanning relays for blinded identities...');
+
+    void discoverIdentities({
+      seed,
+      gapLimit: DISCOVERY_GAP_LIMIT,
+      relayQueryMaxWaitMs: 1200,
+      discoveryBatchSize: DISCOVERY_BATCH_SIZE,
+      onProgress: (progress) => {
+        dispatch(setIdentities(progress.discovered));
+        setDiscoveryProgress({
+          scannedCount: progress.scannedCount,
+          emptyCount: progress.emptyCount,
+        });
+
+        if (!progress.done) {
+          setSearchMsg(
+            `Scanning... checked ${progress.scannedCount} addresses, current empty streak ${progress.emptyCount}/${DISCOVERY_GAP_LIMIT}.`,
+          );
+        }
+      },
+    })
+      .then((discovered) => {
+        if (discovered.length > 0) {
+          setSearchMsg(`Found and recovered ${discovered.length} identities.`);
+        } else {
+          setSearchMsg('No active identities found.');
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setSearchMsg('Recovery failed. See console.');
+      })
+      .finally(() => {
+        setIsSearching(false);
+      });
   };
 
   return (
@@ -80,6 +113,32 @@ export function SecurityDashboard() {
             </Button>
           </div>
           {searchMsg && <div className="text-sm font-medium text-primary mt-2">{searchMsg}</div>}
+
+          {isSearching && discoveryProgress ? (
+            <div className="mt-3 rounded-md border bg-background/80 p-3 space-y-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Running discovery in background</span>
+                </div>
+                <span>{discoveryProgress.scannedCount} checked</span>
+              </div>
+
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-[width] duration-300"
+                  style={{ width: `${emptyStreakPercent}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Empty streak progress to stop condition</span>
+                <span className="font-medium text-foreground">
+                  {discoveryProgress.emptyCount}/{DISCOVERY_GAP_LIMIT}
+                </span>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="p-4 bg-muted/30 border rounded-lg">

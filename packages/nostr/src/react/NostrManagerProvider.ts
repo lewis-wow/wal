@@ -1,6 +1,12 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import type { Uint8Array_ } from '@repo/types';
-import { NostrManager, type NostrIdentity, type NostrManagerConfig, type NostrMessage } from '../NostrManager.js';
+import {
+  NostrManager,
+  type NostrDiscoveryProgress,
+  type NostrIdentity,
+  type NostrManagerConfig,
+  type NostrMessage,
+} from '../NostrManager.js';
 
 export type NostrManagerProviderProps = {
   children: ReactNode;
@@ -11,7 +17,13 @@ export type NostrManagerProviderProps = {
 export type NostrManagerActions = {
   initialize: (opts: { seed: Uint8Array_ }) => void;
   getRelays: () => string[];
-  discoverIdentities: (opts: { seed: Uint8Array_; gapLimit?: number }) => Promise<NostrIdentity[]>;
+  discoverIdentities: (opts: {
+    seed: Uint8Array_;
+    gapLimit?: number;
+    relayQueryMaxWaitMs?: number;
+    discoveryBatchSize?: number;
+    onProgress?: (progress: NostrDiscoveryProgress) => void;
+  }) => Promise<NostrIdentity[]>;
   subscribeToIdentities: (opts: { identities: NostrIdentity[] }) => void;
   sendNip44Message: (opts: { identityIndex: number; contactPubKey: string; message: string }) => Promise<NostrMessage>;
 };
@@ -50,7 +62,13 @@ export const useNostrManagerActions = (): NostrManagerActions => {
   const initialize = useCallback((opts: { seed: Uint8Array_ }) => manager.initialize(opts), [manager]);
   const getRelays = useCallback(() => manager.getRelays(), [manager]);
   const discoverIdentities = useCallback(
-    (opts: { seed: Uint8Array_; gapLimit?: number }) => manager.discoverIdentities(opts),
+    (opts: {
+      seed: Uint8Array_;
+      gapLimit?: number;
+      relayQueryMaxWaitMs?: number;
+      discoveryBatchSize?: number;
+      onProgress?: (progress: NostrDiscoveryProgress) => void;
+    }) => manager.discoverIdentities(opts),
     [manager],
   );
   const subscribeToIdentities = useCallback(

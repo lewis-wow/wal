@@ -4,8 +4,9 @@ import { RouterProvider } from '@tanstack/react-router';
 import { Provider } from 'react-redux';
 import { Toaster } from 'sonner';
 import { NostrManagerProvider, useNostrManagerActions } from '@repo/nostr/react';
-import { chatStore, useAppSelector } from './lib/chat-store';
+import { chatStore, setIdentities, useAppDispatch, useAppSelector } from './lib/chat-store';
 import { nostrManagerConfig } from './lib/nostrManager';
+import { loadCachedIdentities, saveCachedIdentities } from './lib/chat-public-key-cache';
 import { router } from './router';
 import './styles.css';
 
@@ -26,7 +27,38 @@ const NostrIdentitySubscriptionSync = () => {
 
 const ChatNostrProvider = (opts: { children: React.ReactNode }) => {
   const { children } = opts;
+  const dispatch = useAppDispatch();
   const seed = useAppSelector((state) => state.chat.seed);
+  const identities = useAppSelector((state) => state.chat.identities);
+  const didHydrateFromCache = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!seed || didHydrateFromCache.current || identities.length > 0) {
+      return;
+    }
+
+    didHydrateFromCache.current = true;
+
+    void loadCachedIdentities()
+      .then((cachedIdentities) => {
+        if (cachedIdentities.length > 0) {
+          dispatch(setIdentities(cachedIdentities));
+        }
+      })
+      .catch((error: unknown) => {
+        console.warn('Failed to load cached identities', error);
+      });
+  }, [dispatch, identities.length, seed]);
+
+  React.useEffect(() => {
+    if (!seed) {
+      return;
+    }
+
+    void saveCachedIdentities(identities).catch((error: unknown) => {
+      console.warn('Failed to persist cached identities', error);
+    });
+  }, [identities, seed]);
 
   return (
     <NostrManagerProvider config={nostrManagerConfig} seed={seed}>
