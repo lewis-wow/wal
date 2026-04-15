@@ -68,6 +68,12 @@ const chatSlice = createSlice({
       identity.chatLabel = action.payload.chatLabel;
       state.activeIdentityIndex = action.payload.index;
     },
+    updateChatLabel: (state, action: PayloadAction<{ index: number; chatLabel: string }>) => {
+      const identity = state.identities.find((item) => item.index === action.payload.index);
+      if (!identity) return;
+
+      identity.chatLabel = action.payload.chatLabel;
+    },
     setIdentities: (state, action: PayloadAction<FragmentedIdentity[]>) => {
       state.identities = action.payload;
 
@@ -153,6 +159,7 @@ export const {
   setSeed,
   addIdentity,
   linkIdentityToChat,
+  updateChatLabel,
   setIdentities,
   addMessage,
   setConnectionStatus,

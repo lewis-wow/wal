@@ -1,6 +1,6 @@
-import { ChatSidebar } from './chat-sidebar'
-import { ChatWindow } from './chat-window'
-import { StatusIndicator } from './status-indicator'
+import { ChatSidebar } from './chat-sidebar';
+import { ChatWindow } from './chat-window';
+import { StatusIndicator } from './status-indicator';
 
 export function ChatLayout() {
   return (
@@ -13,10 +13,10 @@ export function ChatLayout() {
       </div>
       <div className="flex flex-1 overflow-hidden">
         <ChatSidebar />
-        <div className="flex-1 p-4 bg-muted/20">
+        <div className="flex-1 bg-muted/10">
           <ChatWindow />
         </div>
       </div>
     </div>
-  )
+  );
 }

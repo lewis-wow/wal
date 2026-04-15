@@ -86,19 +86,19 @@ export function ChatWindow() {
   const formError = errors.message?.message ?? errors.root?.message;
 
   return (
-    <div className="flex-1 flex flex-col border rounded-lg bg-background overflow-hidden relative shadow-sm">
-      <div className="p-4 border-b bg-secondary/30 backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between">
+    <div className="flex h-full flex-col bg-background overflow-hidden relative">
+      <div className="p-4 border-b border-border/60 bg-secondary/20 backdrop-blur-sm sticky top-0 z-10 flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-foreground">{chatTitle}</h3>
           <p className="text-xs text-muted-foreground truncate max-w-[250px]">Partner: {partnerKey}</p>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 space-y-4 bg-muted/10">
+      <div className="flex-1 overflow-auto p-4 space-y-4 bg-muted/[0.06]">
         {conversation.map((msg) => (
-          <div key={msg.id} className={`flex max-w-[80%] ${msg.isOwn ? 'ml-auto' : ''}`}>
+          <div key={msg.id} className={`flex w-full ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`px-4 py-2 rounded-2xl ${
+              className={`max-w-[80%] px-4 py-2 rounded-2xl ${
                 msg.isOwn
                   ? 'bg-primary text-primary-foreground rounded-br-sm'
                   : 'bg-secondary text-secondary-foreground rounded-bl-sm border border-border/50'
@@ -113,7 +113,7 @@ export function ChatWindow() {
         ))}
       </div>
 
-      <div className="p-4 bg-background border-t">
+      <div className="p-4 bg-background border-t border-border/60">
         <form onSubmit={handleSubmit(handleSend)} className="space-y-2">
           <div className="flex gap-2 relative">
             <input

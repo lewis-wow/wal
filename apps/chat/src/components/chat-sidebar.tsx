@@ -4,10 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useAppDispatch, useAppSelector } from '../lib/chat-store';
-import { addIdentity, linkIdentityToChat, setActiveIdentity } from '../lib/chat-store';
+import { addIdentity, linkIdentityToChat, setActiveIdentity, updateChatLabel } from '../lib/chat-store';
 import { deriveFragmentedIdentity } from '@repo/nostr';
 import { Button } from '@repo/ui/components/ui/button';
-import { Copy, Plus, QrCode, Share2 } from 'lucide-react';
+import { Copy, Pencil, Plus, QrCode, Share2 } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 import QRCode from 'qrcode';
 import { toast } from 'sonner';
@@ -50,6 +50,12 @@ const addChatFormSchema = z.object({
 
 type AddChatFormValues = z.infer<typeof addChatFormSchema>;
 
+const renameChatFormSchema = z.object({
+  chatLabel: z.string().trim().min(1, 'Label is required').max(60, 'Label must be 60 characters or fewer'),
+});
+
+type RenameChatFormValues = z.infer<typeof renameChatFormSchema>;
+
 export function ChatSidebar() {
   const dispatch = useAppDispatch();
   const identities = useAppSelector((state) => state.chat.identities);
@@ -57,6 +63,7 @@ export function ChatSidebar() {
   const seed = useAppSelector((state) => state.chat.seed);
   const [isAddChatOpen, setIsAddChatOpen] = React.useState(false);
   const [isShareOpen, setIsShareOpen] = React.useState(false);
+  const [isRenameChatOpen, setIsRenameChatOpen] = React.useState(false);
   const [shareLink, setShareLink] = React.useState('');
   const [shareQrDataUrl, setShareQrDataUrl] = React.useState('');
 
@@ -72,6 +79,20 @@ export function ChatSidebar() {
     defaultValues: {
       chatLabel: '',
       partnerPubKey: '',
+    },
+  });
+
+  const {
+    register: registerRename,
+    handleSubmit: handleSubmitRename,
+    reset: resetRename,
+    setValue: setRenameValue,
+    formState: { errors: renameErrors, isSubmitting: isRenaming },
+  } = useForm<RenameChatFormValues>({
+    resolver: zodResolver(renameChatFormSchema),
+    mode: 'onSubmit',
+    defaultValues: {
+      chatLabel: '',
     },
   });
 
@@ -125,6 +146,8 @@ export function ChatSidebar() {
 
   const formError = errors.chatLabel?.message ?? errors.partnerPubKey?.message ?? errors.root?.message;
   const chatIdentities = identities.filter((identity) => Boolean(identity.activeChatPubKey));
+  const activeChatIdentity = chatIdentities.find((identity) => identity.index === activeIdentityIndex);
+  const renameFormError = renameErrors.chatLabel?.message;
 
   const generateSharedAddress = React.useCallback(() => {
     if (!seed) {
@@ -167,11 +190,94 @@ export function ChatSidebar() {
     generateSharedAddress();
   }, [generateSharedAddress, isShareOpen, shareLink]);
 
+  React.useEffect(() => {
+    if (!isRenameChatOpen) {
+      return;
+    }
+
+    if (!activeChatIdentity) {
+      setIsRenameChatOpen(false);
+      return;
+    }
+
+    setRenameValue('chatLabel', activeChatIdentity.chatLabel ?? `Chat #${activeChatIdentity.index}`, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [activeChatIdentity, isRenameChatOpen, setRenameValue]);
+
+  const handleRenameChat = (values: RenameChatFormValues) => {
+    if (!activeChatIdentity) {
+      return;
+    }
+
+    dispatch(
+      updateChatLabel({
+        index: activeChatIdentity.index,
+        chatLabel: values.chatLabel.trim(),
+      }),
+    );
+    setIsRenameChatOpen(false);
+    resetRename();
+    toast.success('Chat label updated');
+  };
+
   return (
     <div className="w-72 border-r bg-sidebar p-4 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold tracking-tight text-sidebar-foreground">Chats</h2>
         <div className="flex items-center gap-1">
+          <Dialog.Root
+            open={isRenameChatOpen}
+            onOpenChange={(open) => {
+              setIsRenameChatOpen(open);
+              if (!open) {
+                resetRename();
+              }
+            }}
+          >
+            <Dialog.Trigger asChild>
+              <Button variant="ghost" size="icon" disabled={!activeChatIdentity}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </Dialog.Trigger>
+            <Dialog.Portal>
+              <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
+              <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-background p-6 shadow-lg">
+                <Dialog.Title className="text-lg font-semibold text-foreground">Rename Chat</Dialog.Title>
+                <Dialog.Description className="mt-1 text-sm text-muted-foreground">
+                  Update the local label for the selected chat.
+                </Dialog.Description>
+
+                <form onSubmit={handleSubmitRename(handleRenameChat)} className="mt-4 space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-foreground">Label</label>
+                    <input
+                      type="text"
+                      placeholder="Chat label"
+                      className="w-full rounded-md border bg-input/50 px-3 py-2 text-sm"
+                      {...registerRename('chatLabel')}
+                    />
+                  </div>
+
+                  {renameFormError && <p className="text-sm font-medium text-destructive">{renameFormError}</p>}
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Dialog.Close asChild>
+                      <Button type="button" variant="outline">
+                        Cancel
+                      </Button>
+                    </Dialog.Close>
+                    <Button type="submit" disabled={isRenaming || !activeChatIdentity}>
+                      Save
+                    </Button>
+                  </div>
+                </form>
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
+
           <Dialog.Root
             open={isShareOpen}
             onOpenChange={(open) => {
