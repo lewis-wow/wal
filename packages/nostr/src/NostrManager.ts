@@ -31,6 +31,7 @@ export type NostrManagerConfig = {
 export class NostrManager {
   private readonly pool = new SimplePool();
   private seed: Uint8Array_ | null = null;
+  private readonly subscribedPubkeys = new Set<string>();
 
   constructor(private readonly config: NostrManagerConfig) {}
 
@@ -38,6 +39,7 @@ export class NostrManager {
     const { seed } = opts;
 
     this.seed = seed;
+    this.subscribedPubkeys.clear();
     this.config.onConnectionStatus?.(NostrConnectionStatus.Connecting);
 
     const identities = this.config.getInitialIdentities?.() ?? [];
@@ -98,7 +100,13 @@ export class NostrManager {
 
     if (identities.length === 0) return;
 
-    const pubkeys = identities.map((identity) => identity.publicKey);
+    const identitiesToSubscribe = identities.filter((identity) => !this.subscribedPubkeys.has(identity.publicKey));
+    if (identitiesToSubscribe.length === 0) return;
+
+    const pubkeys = identitiesToSubscribe.map((identity) => {
+      this.subscribedPubkeys.add(identity.publicKey);
+      return identity.publicKey;
+    });
     const filters = [
       { kinds: [4], '#p': pubkeys },
       { kinds: [4], authors: pubkeys },

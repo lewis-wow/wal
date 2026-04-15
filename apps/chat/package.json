@@ -39,8 +39,7 @@
     "viem": "^2.37.9",
     "zod": "^4.1.12",
     "nostr-tools": "^2.10.4",
-    "@noble/hashes": "^1.8.0",
-    "idb-keyval": "^6.2.1"
+    "@noble/hashes": "^1.8.0"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
