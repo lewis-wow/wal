@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./react": "./src/react/index.ts"
   },
   "scripts": {
     "test:integration": "vitest run --config __tests__/vitest.integration.config.ts",
@@ -12,6 +13,7 @@
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/react": "^19",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "typescript": "^5.5.4",
@@ -23,6 +25,7 @@
     "@repo/bip32": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/utils": "workspace:*",
-    "nostr-tools": "^2.10.4"
+    "nostr-tools": "^2.10.4",
+    "react": "19.1.0"
   }
 }

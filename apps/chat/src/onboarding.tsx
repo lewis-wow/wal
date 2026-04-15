@@ -1,42 +1,64 @@
 import React from 'react';
 import { generateMnemonic, mnemonicToSeed, validateMnemonic } from '@repo/bip39';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAppDispatch } from './lib/chat-store';
 import { setSeed } from './lib/chat-store';
 import { Button } from '@repo/ui/components/ui/button';
 import { useNavigate } from '@tanstack/react-router';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { saveSeed } from './lib/seed-vault';
-import { nostrManager } from './lib/nostr-manager';
+
+const onboardingFormSchema = z.object({
+  mnemonic: z
+    .string()
+    .min(1, 'Mnemonic phrase is required')
+    .refine((value) => validateMnemonic(value), 'Invalid mnemonic phrase'),
+});
+
+type OnboardingFormValues = z.infer<typeof onboardingFormSchema>;
 
 export function Onboarding() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [mnemonic, setMnemonic] = React.useState('');
-  const [error, setError] = React.useState('');
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<OnboardingFormValues>({
+    resolver: zodResolver(onboardingFormSchema),
+    mode: 'onChange',
+    defaultValues: {
+      mnemonic: '',
+    },
+  });
 
   const handleGenerate = () => {
     const newMnemonic = generateMnemonic(256);
-    setMnemonic(newMnemonic);
-    setError('');
+    setValue('mnemonic', newMnemonic, {
+      shouldDirty: true,
+      shouldValidate: true,
+      shouldTouch: true,
+    });
   };
 
-  const handleContinue = async () => {
+  const handleContinue = async (values: OnboardingFormValues) => {
     try {
-      if (!validateMnemonic(mnemonic)) {
-        setError('Invalid mnemonic phrase');
-        return;
-      }
-
-      const seed = mnemonicToSeed(mnemonic);
+      const seed = mnemonicToSeed(values.mnemonic);
       await saveSeed(seed);
       dispatch(setSeed(seed));
-      nostrManager.initialize({ seed });
 
       void navigate({ to: '/chat' });
     } catch (e) {
       console.error(e);
-      setError('Failed to process mnemonic');
+      setError('root', { message: 'Failed to process mnemonic' });
     }
   };
+
+  const formError = errors.mnemonic?.message ?? errors.root?.message;
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -46,28 +68,24 @@ export function Onboarding() {
           Enter your 24-word seed phrase or generate a new one. The seed is stored securely locally using IndexedDB.
         </p>
 
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit(handleContinue)} className="space-y-4">
           <textarea
             className="w-full h-32 p-3 bg-input/50 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
             placeholder="word1 word2 word3..."
-            value={mnemonic}
-            onChange={(e) => {
-              setMnemonic(e.target.value);
-              setError('');
-            }}
+            {...register('mnemonic')}
           />
 
-          {error && <div className="text-destructive text-sm font-medium">{error}</div>}
+          {formError && <div className="text-destructive text-sm font-medium">{formError}</div>}
 
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={handleGenerate}>
+            <Button type="button" variant="outline" className="flex-1" onClick={handleGenerate}>
               Generate New
             </Button>
-            <Button className="flex-1" onClick={handleContinue} disabled={!mnemonic}>
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
               Continue
             </Button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

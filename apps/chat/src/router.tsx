@@ -4,7 +4,6 @@ import { ChatLayout } from './components/chat-layout';
 import { SecurityDashboard } from './components/security-dashboard';
 import { chatStore, setSeed } from './lib/chat-store';
 import { loadSeed } from './lib/seed-vault';
-import { nostrManager } from './lib/nostr-manager';
 
 const RootLayout = () => {
   return (
@@ -25,7 +24,6 @@ const requireSeed = async () => {
     const persisted = await loadSeed();
     if (persisted) {
       chatStore.dispatch(setSeed(persisted));
-      nostrManager.initialize({ seed: persisted });
       seed = persisted;
     }
   }

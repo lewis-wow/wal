@@ -1,7 +1,8 @@
-import { NostrErrorContext, NostrManager } from '@repo/nostr';
+import { NostrErrorContext, type NostrManagerConfig } from '@repo/nostr';
 import { addMessage, setConnectionStatus } from './chat-store';
 import { chatStore } from './chat-store';
-export const nostrManager = new NostrManager({
+
+export const nostrManagerConfig: NostrManagerConfig = {
   getRelays: () => chatStore.getState().chat.relays,
   getInitialIdentities: () => chatStore.getState().chat.identities,
   onConnectionStatus: (status) => {
@@ -18,4 +19,4 @@ export const nostrManager = new NostrManager({
 
     console.warn('Publish threw:', error);
   },
-});
+};

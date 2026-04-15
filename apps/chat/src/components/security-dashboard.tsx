@@ -1,6 +1,6 @@
 import React from 'react';
+import { useNostrManagerActions } from '@repo/nostr/react';
 import { useAppDispatch, useAppSelector } from '../lib/chat-store';
-import { nostrManager } from '../lib/nostr-manager';
 import { setIdentities } from '../lib/chat-store';
 import { Button } from '@repo/ui/components/ui/button';
 import { Shield, Eye, EyeOff, Search, Copy } from 'lucide-react';
@@ -9,6 +9,7 @@ import { bytesToHex } from '@repo/utils';
 
 export function SecurityDashboard() {
   const dispatch = useAppDispatch();
+  const { discoverIdentities } = useNostrManagerActions();
   const identities = useAppSelector((state) => state.chat.identities);
   const seed = useAppSelector((state) => state.chat.seed);
 
@@ -22,7 +23,7 @@ export function SecurityDashboard() {
       setIsSearching(true);
       setSearchMsg('Scanning relays for blinded identities...');
 
-      const discovered = await nostrManager.discoverIdentities({ seed, gapLimit: 20 });
+      const discovered = await discoverIdentities({ seed, gapLimit: 20 });
 
       if (discovered.length > 0) {
         dispatch(setIdentities(discovered));

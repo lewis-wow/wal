@@ -489,6 +489,9 @@ importers:
       nostr-tools:
         specifier: ^2.10.4
         version: 2.23.3(typescript@5.9.2)
+      react:
+        specifier: 19.1.0
+        version: 19.1.0
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*
@@ -496,6 +499,9 @@ importers:
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
+      '@types/react':
+        specifier: ^19
+        version: 19.2.2
       typescript:
         specifier: ^5.5.4
         version: 5.9.2
